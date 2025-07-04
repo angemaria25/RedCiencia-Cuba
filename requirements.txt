@@ -1,0 +1,11 @@
+streamlit
+pandas
+networkx
+matplotlib
+pyvis
+python-louvain
+numpy
+plotly
+seaborn
+wordcloud
+scikit-learn

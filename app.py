@@ -544,8 +544,6 @@ def create_single_centrality_plot(metrics, centrality_type, top_n):
 
 def analyze_author_collaboration_patterns(df_filtered, G_coautor, metrics_coautor):
     """Análisis específico de patrones de colaboración entre autores"""
-    st.subheader("🔍 Análisis de Datos: Patrones de Colaboración")
-    
     # Crear análisis de autores más colaborativos
     autor_stats = {}
     for _, row in df_filtered.iterrows():
@@ -585,47 +583,26 @@ def analyze_author_collaboration_patterns(df_filtered, G_coautor, metrics_coauto
             autor_df = pd.DataFrame(autor_df)
             autor_df = autor_df.sort_values('Colaboraciones', ascending=False)
             
-            col1, col2 = st.columns(2)
         else:
             st.warning("No hay suficientes datos de colaboración para realizar el análisis.")
             return
         
-        with col1:
-            st.write("**🏆 Top 10 Autores Más Colaborativos**")
-            top_colaborativos = autor_df.head(10)
-            
-            fig = px.bar(
-                top_colaborativos,
-                x='Colaboraciones',
-                y='Autor',
-                orientation='h',
-                title="Autores con Más Papers Colaborativos"
-            )
-            fig.update_layout(height=400)
-            st.plotly_chart(fig, use_container_width=True)
+        top_colaborativos = autor_df.head(10)
         
-        with col2:
-            st.write("**🌐 Diversidad vs Colaboración**")
-            
-            fig_scatter = px.scatter(
-                autor_df.head(20),
-                x='Colaboraciones',
-                y='Diversidad_Tematica',
-                size='Coautores_Unicos',
-                hover_name='Autor',
-                title="Colaboración vs Diversidad Temática",
-                labels={
-                    'Colaboraciones': 'Número de Colaboraciones',
-                    'Diversidad_Tematica': 'Número de Temáticas',
-                    'Coautores_Unicos': 'Coautores Únicos'
-                }
-            )
-            st.plotly_chart(fig_scatter, use_container_width=True)
-        
+        fig = px.bar(
+            top_colaborativos,
+            x='Colaboraciones',
+            y='Autor',
+            orientation='h',
+            title="Autores con mayor cantidad de Colaboraciones"
+        )
+        fig.update_layout(height=400)
+        st.plotly_chart(fig, use_container_width=True)
+    
         # Análisis detallado de autor seleccionado
-        st.subheader("🔍 Análisis Detallado de Autor")
+        st.subheader("Resumen de Autor")
         autor_seleccionado = st.selectbox(
-            "Selecciona un autor para análisis detallado:",
+            "Selecciona un autor:",
             [''] + list(autor_df['Autor'].values),
             key='autor_colab_analysis'
         )
@@ -633,19 +610,17 @@ def analyze_author_collaboration_patterns(df_filtered, G_coautor, metrics_coauto
         if autor_seleccionado:
             autor_info = autor_df[autor_df['Autor'] == autor_seleccionado].iloc[0]
             
-            col1, col2, col3, col4 = st.columns(4)
+            col1, col2, col3 = st.columns(3)
             with col1:
                 st.metric("🤝 Colaboraciones", autor_info['Colaboraciones'])
             with col2:
-                st.metric("👥 Coautores Únicos", autor_info['Coautores_Unicos'])
-            with col3:
                 st.metric("📚 Temáticas", autor_info['Diversidad_Tematica'])
-            with col4:
+            with col3:
                 st.metric("🏛️ Instituciones", autor_info['Diversidad_Institucional'])
             
             # Nube de palabras de especialización
             if autor_info['Palabras_Clave']:
-                st.subheader(f"☁️ Especialización de {autor_seleccionado}")
+                st.subheader(f"☁️ Campo de investigación de {autor_seleccionado}")
                 
                 palabra_freq = Counter(autor_info['Palabras_Clave'])
                 if len(palabra_freq) > 0:
@@ -677,7 +652,6 @@ def analyze_author_collaboration_patterns(df_filtered, G_coautor, metrics_coauto
 
 def analyze_institutional_collaboration(df_filtered, G_institucional, metrics_inst):
     """Análisis específico de colaboración institucional"""
-    st.subheader("🔍 Análisis de Datos: Colaboración Institucional")
     
     # Análisis de instituciones
     inst_stats = {}
@@ -729,84 +703,38 @@ def analyze_institutional_collaboration(df_filtered, G_institucional, metrics_in
                 
             inst_df = inst_df.sort_values('Papers', ascending=False)
             
-            col1, col2 = st.columns(2)
         else:
             st.warning("No hay suficientes datos institucionales para realizar el análisis.")
             return
         
-        with col1:
-            st.write("**🏆 Top Instituciones por Productividad**")
-            top_inst = inst_df.head(10)
-            
-            fig = px.bar(
-                top_inst,
-                x='Papers',
-                y='Institución',
-                orientation='h',
-                title="Instituciones Más Productivas"
-            )
-            fig.update_layout(height=400)
-            st.plotly_chart(fig, use_container_width=True)
+        top_inst = inst_df.head(10)
         
-        with col2:
-            st.write("**🎯 Especialización vs Diversidad**")
-            
-            # Crear categorías de especialización
-            inst_df['Tipo_Especialización'] = inst_df['Especialización'].apply(
-                lambda x: 'Muy Especializada' if x <= 0.3 else 
-                         'Especializada' if x <= 0.6 else 
-                         'Diversificada'
-            )
-            
-            fig_scatter = px.scatter(
-                inst_df.head(15),
-                x='Papers',
-                y='Diversidad_Tematica',
-                size='Autores',
-                color='Tipo_Especialización',
-                hover_name='Institución',
-                title="Productividad vs Diversidad Temática",
-                labels={
-                    'Papers': 'Número de Papers',
-                    'Diversidad_Tematica': 'Número de Temáticas Diferentes'
-                }
-            )
-            st.plotly_chart(fig_scatter, use_container_width=True)
+        fig = px.bar(
+            top_inst,
+            x='Papers',
+            y='Institución',
+            orientation='h',
+            title="Instituciones con mayor cantidad de publicaciones de artículos cientifícos"
+        )
+        fig.update_layout(height=400)
+        st.plotly_chart(fig, use_container_width=True)
         
-        # Análisis de colaboración entre instituciones
-        st.subheader("🤝 Análisis de Colaboración Inter-Institucional")
+        top_colab = inst_df.nlargest(10, 'Colaboraciones_Inst')
         
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.write("**Top Instituciones Más Colaborativas**")
-            top_colab = inst_df.nlargest(10, 'Colaboraciones_Inst')
-            
-            fig = px.bar(
-                top_colab,
-                x='Colaboraciones_Inst',
-                y='Institución',
-                orientation='h',
-                title="Instituciones con Más Colaboraciones"
-            )
-            fig.update_layout(height=400)
-            st.plotly_chart(fig, use_container_width=True)
-        
-        with col2:
-            # Análisis de especialización
-            especialización_counts = inst_df['Tipo_Especialización'].value_counts()
-            
-            fig_pie = px.pie(
-                values=especialización_counts.values,
-                names=especialización_counts.index,
-                title="Distribución de Tipos de Especialización"
-            )
-            st.plotly_chart(fig_pie, use_container_width=True)
+        fig = px.bar(
+            top_colab,
+            x='Colaboraciones_Inst',
+            y='Institución',
+            orientation='h',
+            title="Instituciones más Colaboraciones"
+        )
+        fig.update_layout(height=400)
+        st.plotly_chart(fig, use_container_width=True)
         
         # Análisis detallado de institución
-        st.subheader("🔍 Análisis Detallado de Institución")
+        st.subheader("Resumen de Institución")
         inst_seleccionada = st.selectbox(
-            "Selecciona una institución para análisis detallado:",
+            "Selecciona una institución:",
             [''] + list(inst_df['Institución'].values),
             key='inst_analysis'
         )
@@ -848,26 +776,15 @@ def analyze_institutional_collaboration(df_filtered, G_institucional, metrics_in
                         st.write("**Principales áreas de investigación:**")
                         for palabra, freq in palabra_freq.most_common(20):
                             st.write(f"• {palabra} ({freq} veces)")
-            
-            # Información adicional
-            col1, col2 = st.columns(2)
+        
             with col1:
                 st.write("**Temáticas de Investigación:**")
                 for tema in inst_info['Tematicas'][:10]:
                     st.write(f"• {tema}")
             
-            with col2:
-                tipo_esp = inst_info['Tipo_Especialización']
-                if tipo_esp == 'Muy Especializada':
-                    st.success("🎯 **Institución Muy Especializada**: Se enfoca en pocas áreas específicas")
-                elif tipo_esp == 'Especializada':
-                    st.info("📊 **Instituci��n Especializada**: Tiene un enfoque moderadamente diverso")
-                else:
-                    st.warning("🌐 **Institución Diversificada**: Abarca muchas áreas diferentes")
-
+            
 def analyze_thematic_patterns(df_filtered, G_tematica, metrics_tema):
     """Análisis específico de patrones temáticos"""
-    st.subheader("🔍 Análisis de Datos: Patrones Temáticos")
     
     # Análisis de temáticas
     tema_stats = {}
@@ -920,40 +837,7 @@ def analyze_thematic_patterns(df_filtered, G_tematica, metrics_tema):
             st.warning("No hay suficientes datos temáticos para realizar el análisis.")
             return
         
-        with col1:
-            st.write("**🏆 Temáticas Más Investigadas**")
-            top_temas = tema_df.head(10)
-            
-            fig = px.bar(
-                top_temas,
-                x='Papers',
-                y='Temática',
-                orientation='h',
-                title="Temáticas con Más Publicaciones"
-            )
-            fig.update_layout(height=400)
-            st.plotly_chart(fig, use_container_width=True)
-        
-        with col2:
-            st.write("**🤝 Colaboración por Temática**")
-            
-            fig_scatter = px.scatter(
-                tema_df.head(15),
-                x='Papers',
-                y='Tasa_Colaboracion',
-                size='Autores',
-                hover_name='Temática',
-                title="Productividad vs Tasa de Colaboración",
-                labels={
-                    'Papers': 'Número de Papers',
-                    'Tasa_Colaboracion': 'Tasa de Colaboración',
-                    'Autores': 'Número de Autores'
-                }
-            )
-            st.plotly_chart(fig_scatter, use_container_width=True)
-        
-        # Análisis detallado de temática
-        st.subheader("🔍 Análisis Detallado de Temática")
+        st.subheader("Resumen de Temática")
         tema_seleccionada = st.selectbox(
             "Selecciona una temática para análisis detallado:",
             [''] + list(tema_df['Temática'].values),
@@ -1152,7 +1036,7 @@ def analyze_keyword_patterns(df_filtered, G_keywords, metrics_kw):
 
 def analyze_institution_thematic_patterns(df_filtered, G_inst_tema, metrics_inst_tema):
     """Análisis específico de patrones institución-temática"""
-    st.subheader("🔍 Análisis de Datos: Especialización Institucional")
+
     
     # Análisis de especialización institucional por temática
     inst_tema_stats = {}
@@ -1207,51 +1091,13 @@ def analyze_institution_thematic_patterns(df_filtered, G_inst_tema, metrics_inst
             # Clasificar instituciones por nivel de especialización
             esp_df['Nivel_Especialización'] = esp_df['Porcentaje_Especialización'].apply(
                 lambda x: 'Muy Especializada' if x >= 70 else 
-                         'Especializada' if x >= 50 else 
-                         'Diversificada'
+                            'Especializada' if x >= 50 else 
+                            'Diversificada'
             )
         else:
             st.warning("No hay suficientes datos institucionales para realizar el análisis de especialización.")
             return
         
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.write("**🏆 Instituciones Más Especializadas**")
-            top_esp = esp_df.nlargest(10, 'Porcentaje_Especialización')
-            
-            fig = px.bar(
-                top_esp,
-                x='Porcentaje_Especialización',
-                y='Institución',
-                orientation='h',
-                title="Instituciones por Nivel de Especialización (%)",
-                color='Nivel_Especialización'
-            )
-            fig.update_layout(height=400)
-            st.plotly_chart(fig, use_container_width=True)
-        
-        with col2:
-            st.write("**📊 Productividad vs Especialización**")
-            
-            fig_scatter = px.scatter(
-                esp_df,
-                x='Total_Papers',
-                y='Porcentaje_Especialización',
-                size='Num_Tematicas',
-                color='Nivel_Especialización',
-                hover_name='Institución',
-                title="Productividad vs Especialización",
-                labels={
-                    'Total_Papers': 'Número Total de Papers',
-                    'Porcentaje_Especialización': 'Porcentaje de Especialización (%)',
-                    'Num_Tematicas': 'Número de Temáticas'
-                }
-            )
-            st.plotly_chart(fig_scatter, use_container_width=True)
-        
-        # An��lisis de fortalezas institucionales
-        st.subheader("🎯 Fortalezas de Investigación por Institución")
         
         # Agrupar por temática principal
         fortalezas = esp_df.groupby('Tema_Principal').agg({
@@ -1263,35 +1109,9 @@ def analyze_institution_thematic_patterns(df_filtered, G_inst_tema, metrics_inst
         fortalezas.columns = ['Temática', 'Num_Instituciones', 'Total_Papers', 'Total_Autores']
         fortalezas = fortalezas.sort_values('Total_Papers', ascending=False)
         
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.write("**Temáticas con Más Instituciones Especializadas:**")
-            top_fortalezas = fortalezas.head(10)
-            
-            fig = px.bar(
-                top_fortalezas,
-                x='Num_Instituciones',
-                y='Temática',
-                orientation='h',
-                title="Temáticas por Número de Instituciones"
-            )
-            fig.update_layout(height=400)
-            st.plotly_chart(fig, use_container_width=True)
-        
-        with col2:
-            # Distribución de niveles de especialización
-            nivel_counts = esp_df['Nivel_Especialización'].value_counts()
-            
-            fig_pie = px.pie(
-                values=nivel_counts.values,
-                names=nivel_counts.index,
-                title="Distribución de Niveles de Especialización"
-            )
-            st.plotly_chart(fig_pie, use_container_width=True)
         
         # Análisis detallado de institución
-        st.subheader("🔍 Análisis Detallado de Especialización Institucional")
+        st.subheader("Resumen de Especialización Institucional")
         inst_seleccionada = st.selectbox(
             "Selecciona una institución para análisis detallado:",
             [''] + list(esp_df['Institución'].values),
@@ -1301,80 +1121,15 @@ def analyze_institution_thematic_patterns(df_filtered, G_inst_tema, metrics_inst
         if inst_seleccionada:
             inst_info = esp_df[esp_df['Institución'] == inst_seleccionada].iloc[0]
             
-            col1, col2, col3, col4 = st.columns(4)
+            col1, col2 = st.columns(2)
             with col1:
                 st.metric("📄 Total Papers", inst_info['Total_Papers'])
             with col2:
                 st.metric("📚 Temáticas", inst_info['Num_Tematicas'])
-            with col3:
-                st.metric("🎯 Especialización", f"{inst_info['Porcentaje_Especialización']:.1f}%")
-            with col4:
-                nivel = inst_info['Nivel_Especialización']
-                if nivel == 'Muy Especializada':
-                    st.success("🎯 Muy Especializada")
-                elif nivel == 'Especializada':
-                    st.info("��� Especializada")
-                else:
-                    st.warning("🌐 Diversificada")
             
-            # Información de la temática principal
-            st.subheader(f"🏆 Fortaleza Principal: {inst_info['Tema_Principal']}")
             
-            col1, col2 = st.columns(2)
-            with col1:
-                st.metric("📄 Papers en Tema Principal", inst_info['Papers_Tema_Principal'])
-                st.metric("👥 Autores en Tema Principal", inst_info['Autores_Tema_Principal'])
             
-            with col2:
-                # Nube de palabras de la especialización
-                if inst_info['Palabras_Clave_Principal']:
-                    palabra_freq = Counter(inst_info['Palabras_Clave_Principal'])
-                    if len(palabra_freq) > 0:
-                        try:
-                            wordcloud = WordCloud(
-                                width=600, 
-                                height=300, 
-                                background_color='white',
-                                max_words=30,
-                                colormap='viridis'
-                            ).generate_from_frequencies(palabra_freq)
-                            
-                            fig, ax = plt.subplots(figsize=(8, 4))
-                            ax.imshow(wordcloud, interpolation='bilinear')
-                            ax.axis('off')
-                            ax.set_title(f"Especialización en {inst_info['Tema_Principal']}")
-                            st.pyplot(fig)
-                            plt.close()
-                        except:
-                            st.write("**Palabras clave principales:**")
-                            for palabra, freq in palabra_freq.most_common(15):
-                                st.write(f"• {palabra} ({freq})")
             
-            # Mostrar todas las temáticas de la institución
-            if inst_seleccionada in inst_tema_stats:
-                st.subheader("📊 Distribución Completa de Temáticas")
-                
-                temas_inst = []
-                for tema, data in inst_tema_stats[inst_seleccionada].items():
-                    temas_inst.append({
-                        'Temática': tema,
-                        'Papers': data['papers'],
-                        'Autores': len(data['autores']),
-                        'Porcentaje': (data['papers'] / inst_info['Total_Papers']) * 100
-                    })
-                
-                temas_df = pd.DataFrame(temas_inst)
-                temas_df = temas_df.sort_values('Papers', ascending=False)
-                
-                fig = px.bar(
-                    temas_df,
-                    x='Papers',
-                    y='Temática',
-                    orientation='h',
-                    title=f"Distribución de Papers por Temática - {inst_seleccionada}"
-                )
-                fig.update_layout(height=300 + len(temas_df) * 20)
-                st.plotly_chart(fig, use_container_width=True)
 
 ##INTERFAZ PRINCIPAL
 with st.spinner("🔄 Cargando datos de papers cubanos..."):
@@ -1392,7 +1147,6 @@ tabs = st.tabs([
     "🤝 Red de Coautoría", 
     "🏢 Red Institucional", 
     "📚 Red Temática",
-    "🔑 Red de Palabras Clave",
     "🏛️ Red Institución-Temática"
 ])
 
@@ -1469,18 +1223,18 @@ with tabs[1]:
             create_network_visualization(G_coautor, metrics_coautor, "Red de Coautoría")
             
             if 'degree_centrality' in metrics_coautor:
-                st.subheader("Análisis de Centralidad")
+                st.subheader("Métricas de Centralidad")
                 
                 col1, col2 = st.columns(2)
                 with col1:
                     centrality_type = st.selectbox(
-                        "Selecciona la métrica de centralidad:",
+                        "Selecciona la métrica de centralidad deseada:",
                         ['Grado', 'Intermediación', 'Cercanía', 'Eigenvector'],
                         key='centrality_coautor'
                     )
                 with col2:
                     top_n = st.selectbox(
-                        "Top N a mostrar:",
+                        "Cantidad a mostrar:",
                         [5, 10, 15, 20, 25],
                         index=1,
                         key='top_n_coautor'
@@ -1524,18 +1278,18 @@ with tabs[2]:
             create_network_visualization(G_institucional, metrics_inst, "Red Institucional")
             
             if 'degree_centrality' in metrics_inst:
-                st.subheader("Análisis de Centralidad")
+                st.write("Métricas de Centralidad")
                 
                 col1, col2 = st.columns(2)
                 with col1:
                     centrality_type = st.selectbox(
-                        "Selecciona métrica de centralidad:",
+                        "Selecciona la métrica de centralidad deseada:",
                         ['Grado', 'Intermediación', 'Cercanía', 'Eigenvector'],
                         key='centrality_inst'
                     )
                 with col2:
                     top_n = st.selectbox(
-                        "Top N a mostrar:",
+                        "Cantidad a mostrar:",
                         [5, 10, 15, 20],
                         index=1,
                         key='top_n_inst'
@@ -1570,18 +1324,18 @@ with tabs[3]:
             
             # Métricas de centralidad para red bipartita
             if 'degree_centrality' in metrics_tema:
-                st.subheader("Análisis de Centralidad")
+                st.subheader("Métricas de Centralidad")
                 
                 col1, col2 = st.columns(2)
                 with col1:
                     centrality_type = st.selectbox(
-                        "Selecciona métrica de centralidad:",
+                        "Selecciona la métrica de centralidad deseada:",
                         ['Grado', 'Intermediación', 'Cercanía'],
                         key='centrality_tema'
                     )
                 with col2:
                     top_n = st.selectbox(
-                        "Top N a mostrar:",
+                        "Cantidad a mostrar:",
                         [5, 10, 15, 20],
                         index=1,
                         key='top_n_tema'
@@ -1595,51 +1349,6 @@ with tabs[3]:
             st.warning("No hay suficientes datos para construir la red temática con los filtros actuales.")
 
 with tabs[4]:
-    st.header("🔑 Red de Palabras Clave (Autor-Palabra Clave)")
-    st.markdown("""
-    - Análisis de los intereses de investigación.
-    - Conecta investigadores con intereses específicos similares.
-    """)
-    
-    if len(df_filtered) == 0:
-        st.warning("⚠️ No hay papers que coincidan con los filtros seleccionados.")
-    else:
-        with st.spinner("Construyendo red de palabras clave..."):
-            G_keywords = build_keyword_network(df_filtered, filters['max_nodos'])
-        
-        if G_keywords.number_of_nodes() > 0:
-            # Calcular métricas específicas para esta red
-            metrics_kw = calculate_network_metrics(G_keywords, "keywords")
-            
-            st.info("🔴 Nodos rojos = Autores | 🔵 Nodos azules = Palabras Clave")
-            create_network_visualization(G_keywords, metrics_kw, "Red de Palabras Clave")
-            
-            if 'degree_centrality' in metrics_kw:
-                st.subheader("Análisis de Centralidad")
-                
-                col1, col2 = st.columns(2)
-                with col1:
-                    centrality_type = st.selectbox(
-                        "Selecciona métrica de centralidad:",
-                        ['Grado', 'Intermediación', 'Cercanía'],
-                        key='centrality_kw'
-                    )
-                with col2:
-                    top_n = st.selectbox(
-                        "Top N a mostrar:",
-                        [5, 10, 15, 20, 25],
-                        index=2,
-                        key='top_n_kw'
-                    )
-                
-                create_single_centrality_plot(metrics_kw, centrality_type, top_n)
-            
-            # Análisis específico de patrones de palabras clave
-            analyze_keyword_patterns(df_filtered, G_keywords, metrics_kw)
-        else:
-            st.warning("No hay suficientes datos para construir la red de palabras clave con los filtros actuales.")
-
-with tabs[5]:
     st.header("🏛️ Red Institución-Temática")
     st.markdown("""
     - Identifica fortalezas de investigación, conecta instituciones con las temáticas que publican.
@@ -1694,7 +1403,7 @@ with tabs[5]:
                 
             # Métricas de centralidad
             if 'degree_centrality' in metrics_inst_tema:
-                st.subheader("Análisis de Centralidad")
+                st.subheader("Métricas de Centralidad")
                 
                 col1, col2 = st.columns(2)
                 with col1:
@@ -1705,7 +1414,7 @@ with tabs[5]:
                     )
                 with col2:
                     top_n = st.selectbox(
-                        "Top N a mostrar:",
+                        "Cantidad a mostrar:",
                         [5, 10, 15, 20],
                         index=1,
                         key='top_n_inst_tema'
@@ -1717,394 +1426,4 @@ with tabs[5]:
             analyze_institution_thematic_patterns(df_filtered, G_inst_tema, metrics_inst_tema)
         else:
             st.warning("No hay suficientes datos para construir la red Institución-Temática con los filtros actuales.")
-    st.markdown("""
-    Esta sección te permite explorar los datos de manera interactiva para responder preguntas específicas sobre:
-    - **Autores**: ¿Quiénes son los más productivos? ¿En qué instituciones trabajan?
-    - **Instituciones**: ¿Cuáles son las más activas? ¿En qué áreas se especializan?
-    - **Colaboraciones**: ¿Qué patrones de colaboración existen?
-    - **Temáticas**: ¿Cuáles son las áreas de investigación más populares?
-    """)
     
-    # Selector de tipo de análisis
-    analysis_type = st.selectbox(
-        "¿Qué quieres explorar?",
-        [
-            "🧑‍🔬 Análisis de Autores",
-            "🏛️ Análisis de Instituciones", 
-            "Análisis de Colaboraciones",
-            "📚 Análisis de Temáticas",
-            "🔍 Búsqueda Específica"
-        ]
-    )
-    
-    if analysis_type == "🧑‍🔬 Análisis de Autores":
-        st.subheader("Análisis Detallado de Autores")
-        
-        # Crear análisis de autores
-        autor_stats = []
-        for _, row in df_filtered.iterrows():
-            autores = row['autores_list']
-            instituciones = row['afiliaciones_list']
-            tematica = row['tematica']
-            palabras_clave = row['palabras_clave_list']
-            
-            for autor in autores:
-                autor_stats.append({
-                    'autor': autor,
-                    'instituciones': instituciones,
-                    'tematica': tematica,
-                    'palabras_clave': palabras_clave,
-                    'titulo': row['titulo']
-                })
-        
-        if autor_stats:
-            autor_df = pd.DataFrame(autor_stats)
-            
-            # Estadísticas por autor
-            autor_summary = autor_df.groupby('autor').agg({
-                'titulo': 'count',
-                'tematica': lambda x: list(set(x)),
-                'instituciones': lambda x: list(set([inst for sublist in x for inst in sublist if inst])),
-            }).reset_index()
-            
-            autor_summary.columns = ['Autor', 'Num_Papers', 'Temáticas', 'Instituciones']
-            autor_summary = autor_summary.sort_values('Num_Papers', ascending=False)
-            
-            # Top autores más productivos
-            st.subheader("🏆 Top Autores Más Productivos")
-            top_n_autores = st.slider("Número de autores a mostrar:", 5, 50, 20)
-            
-            top_autores = autor_summary.head(top_n_autores)
-            
-            # Gráfico de barras
-            fig = px.bar(
-                top_autores, 
-                x='Num_Papers', 
-                y='Autor',
-                orientation='h',
-                title=f"Top {top_n_autores} Autores por Número de Publicaciones",
-                labels={'Num_Papers': 'Número de Papers', 'Autor': 'Autor'}
-            )
-            fig.update_layout(height=600)
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # Búsqueda de autor específico
-            st.subheader("🔍 Información Detallada de Autor")
-            autor_seleccionado = st.selectbox(
-                "Selecciona un autor para ver detalles:",
-                [''] + list(autor_summary['Autor'].values)
-            )
-            
-            if autor_seleccionado:
-                autor_info = autor_summary[autor_summary['Autor'] == autor_seleccionado].iloc[0]
-                
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.metric("📄 Número de Papers", autor_info['Num_Papers'])
-                    st.metric("🏛️ Número de Instituciones", len(autor_info['Instituciones']))
-                    
-                    st.write("**Instituciones:**")
-                    for inst in autor_info['Instituciones']:
-                        st.write(f"• {inst}")
-                
-                with col2:
-                    st.metric("📚 Número de Temáticas", len(autor_info['Temáticas']))
-                    
-                    st.write("**Temáticas de Investigación:**")
-                    for tema in autor_info['Temáticas']:
-                        st.write(f"• {tema}")
-                
-                # Papers del autor
-                papers_autor = autor_df[autor_df['autor'] == autor_seleccionado]
-                st.subheader(f"📄 Papers de {autor_seleccionado}")
-                
-                for i, (_, paper) in enumerate(papers_autor.iterrows(), 1):
-                    with st.expander(f"Paper {i}: {paper['titulo'][:100]}..."):
-                        st.write(f"**Título:** {paper['titulo']}")
-                        st.write(f"**Temática:** {paper['tematica']}")
-                        if paper['palabras_clave']:
-                            st.write(f"**Palabras Clave:** {', '.join(paper['palabras_clave'])}")
-    
-    elif analysis_type == "🏛️ Análisis de Instituciones":
-        st.subheader("Análisis Detallado de Instituciones")
-        
-        # Crear análisis de instituciones
-        inst_stats = []
-        for _, row in df_filtered.iterrows():
-            autores = row['autores_list']
-            instituciones = row['afiliaciones_list']
-            tematica = row['tematica']
-            
-            for inst in set(instituciones):
-                if inst:
-                    inst_stats.append({
-                        'institucion': inst,
-                        'autores': autores,
-                        'tematica': tematica,
-                        'titulo': row['titulo']
-                    })
-        
-        if inst_stats:
-            inst_df = pd.DataFrame(inst_stats)
-            
-            # Estadísticas por institución
-            inst_summary = inst_df.groupby('institucion').agg({
-                'titulo': 'count',
-                'tematica': lambda x: list(set(x)),
-                'autores': lambda x: list(set([autor for sublist in x for autor in sublist])),
-            }).reset_index()
-            
-            inst_summary.columns = ['Institución', 'Num_Papers', 'Temáticas', 'Autores']
-            inst_summary['Num_Autores'] = inst_summary['Autores'].apply(len)
-            inst_summary['Num_Temáticas'] = inst_summary['Temáticas'].apply(len)
-            inst_summary = inst_summary.sort_values('Num_Papers', ascending=False)
-            
-            # Top instituciones
-            st.subheader("🏆 Top Instituciones Más Productivas")
-            top_n_inst = st.slider("Número de instituciones a mostrar:", 5, 30, 15)
-            
-            top_instituciones = inst_summary.head(top_n_inst)
-            
-            # Gráfico de barras
-            fig = px.bar(
-                top_instituciones, 
-                x='Num_Papers', 
-                y='Institución',
-                orientation='h',
-                title=f"Top {top_n_inst} Instituciones por Número de Publicaciones"
-            )
-            fig.update_layout(height=600)
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # Análisis de diversidad institucional
-            st.subheader("📊 Diversidad de Investigación por Institución")
-            
-            # Gráfico de dispersión: Papers vs Diversidad Temática
-            fig_scatter = px.scatter(
-                inst_summary.head(20),
-                x='Num_Papers',
-                y='Num_Temáticas',
-                size='Num_Autores',
-                hover_name='Institución',
-                title="Productividad vs Diversidad Temática",
-                labels={
-                    'Num_Papers': 'Número de Papers',
-                    'Num_Temáticas': 'Número de Temáticas',
-                    'Num_Autores': 'Número de Autores'
-                }
-            )
-            st.plotly_chart(fig_scatter, use_container_width=True)
-            
-            # Información detallada de institución
-            st.subheader("🔍 Información Detallada de Institución")
-            inst_seleccionada = st.selectbox(
-                "Selecciona una institución:",
-                [''] + list(inst_summary['Institución'].values)
-            )
-            
-            if inst_seleccionada:
-                inst_info = inst_summary[inst_summary['Institución'] == inst_seleccionada].iloc[0]
-                
-                col1, col2, col3 = st.columns(3)
-                
-                with col1:
-                    st.metric("📄 Papers", inst_info['Num_Papers'])
-                with col2:
-                    st.metric("👥 Autores", inst_info['Num_Autores'])
-                with col3:
-                    st.metric("📚 Temáticas", inst_info['Num_Temáticas'])
-                
-                # Mostrar temáticas y autores principales
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.write("**Principales Temáticas:**")
-                    for tema in inst_info['Temáticas'][:10]:
-                        st.write(f"• {tema}")
-                
-                with col2:
-                    st.write("**Principales Autores:**")
-                    for autor in inst_info['Autores'][:10]:
-                        st.write(f"• {autor}")
-    
-    elif analysis_type == "🤝 Análisis de Colaboraciones":
-        st.subheader("Análisis de Patrones de Colaboración")
-        
-        # Análisis de colaboraciones entre autores
-        colaboraciones = []
-        for _, row in df_filtered.iterrows():
-            autores = row['autores_list']
-            if len(autores) > 1:
-                for i in range(len(autores)):
-                    for j in range(i+1, len(autores)):
-                        colaboraciones.append({
-                            'autor1': autores[i],
-                            'autor2': autores[j],
-                            'tematica': row['tematica'],
-                            'titulo': row['titulo']
-                        })
-        
-        if colaboraciones:
-            colab_df = pd.DataFrame(colaboraciones)
-            
-            # Top colaboraciones
-            colab_counts = colab_df.groupby(['autor1', 'autor2']).size().reset_index(name='num_colaboraciones')
-            colab_counts = colab_counts.sort_values('num_colaboraciones', ascending=False)
-            
-            st.subheader("🏆 Top Colaboraciones Entre Autores")
-            top_n_colab = st.slider("Número de colaboraciones a mostrar:", 5, 30, 15)
-            
-            top_colaboraciones = colab_counts.head(top_n_colab)
-            top_colaboraciones['colaboracion'] = top_colaboraciones['autor1'] + ' ↔ ' + top_colaboraciones['autor2']
-            
-            fig = px.bar(
-                top_colaboraciones,
-                x='num_colaboraciones',
-                y='colaboracion',
-                orientation='h',
-                title=f"Top {top_n_colab} Colaboraciones Más Frecuentes"
-            )
-            fig.update_layout(height=600)
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # Análisis de colaboración por temática
-            st.subheader("📚 Colaboraciones por Temática")
-            
-            tematica_colab = colab_df.groupby('tematica').size().reset_index(name='num_colaboraciones')
-            tematica_colab = tematica_colab.sort_values('num_colaboraciones', ascending=False).head(15)
-            
-            fig_tema = px.bar(
-                tematica_colab,
-                x='num_colaboraciones',
-                y='tematica',
-                orientation='h',
-                title="Colaboraciones por Temática de Investigación"
-            )
-            fig_tema.update_layout(height=500)
-            st.plotly_chart(fig_tema, use_container_width=True)
-    
-    elif analysis_type == "📚 Análisis de Temáticas":
-        st.subheader("Análisis Detallado de Temáticas de Investigación")
-        
-        # Análisis de temáticas
-        tematica_stats = df_filtered.groupby('tematica').agg({
-            'titulo': 'count',
-            'autores_list': lambda x: list(set([autor for sublist in x for autor in sublist])),
-            'afiliaciones_list': lambda x: list(set([inst for sublist in x for inst in sublist if inst])),
-            'palabras_clave_list': lambda x: [kw for sublist in x for kw in sublist if kw]
-        }).reset_index()
-        
-        tematica_stats.columns = ['Temática', 'Num_Papers', 'Autores', 'Instituciones', 'Palabras_Clave']
-        tematica_stats['Num_Autores'] = tematica_stats['Autores'].apply(len)
-        tematica_stats['Num_Instituciones'] = tematica_stats['Instituciones'].apply(len)
-        tematica_stats = tematica_stats.sort_values('Num_Papers', ascending=False)
-        
-        # Top temáticas
-        st.subheader("🏆 Temáticas Más Investigadas")
-        top_n_temas = st.slider("Número de temáticas a mostrar:", 5, 25, 15)
-        
-        top_tematicas = tematica_stats.head(top_n_temas)
-        
-        fig = px.bar(
-            top_tematicas,
-            x='Num_Papers',
-            y='Temática',
-            orientation='h',
-            title=f"Top {top_n_temas} Temáticas por Número de Papers"
-        )
-        fig.update_layout(height=600)
-        st.plotly_chart(fig, use_container_width=True)
-        
-        # Análisis detallado de temática
-        st.subheader("🔍 Análisis Detallado de Temática")
-        tema_seleccionada = st.selectbox(
-            "Selecciona una temática:",
-            [''] + list(tematica_stats['Temática'].values)
-        )
-        
-        if tema_seleccionada:
-            tema_info = tematica_stats[tematica_stats['Temática'] == tema_seleccionada].iloc[0]
-            
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                st.metric("📄 Papers", tema_info['Num_Papers'])
-            with col2:
-                st.metric("👥 Autores", tema_info['Num_Autores'])
-            with col3:
-                st.metric("🏛️ Instituciones", tema_info['Num_Instituciones'])
-            
-            # Mostrar palabras clave principales
-            if tema_info['Palabras_Clave']:
-                st.subheader("🔑 Principales Palabras Clave")
-                
-                # Contar frecuencia de palabras clave
-                palabra_freq = Counter(tema_info['Palabras_Clave'])
-                
-                if len(palabra_freq) > 0:
-                    st.write("**Palabras Clave Más Frecuentes:**")
-                    for palabra, freq in palabra_freq.most_common(20):
-                        st.write(f"• {palabra} ({freq})")
-            
-            # Top autores e instituciones en esta temática
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.write("**Top Autores:**")
-                for autor in tema_info['Autores'][:10]:
-                    st.write(f"• {autor}")
-            
-            with col2:
-                st.write("**Top Instituciones:**")
-                for inst in tema_info['Instituciones'][:10]:
-                    st.write(f"• {inst}")
-    
-    elif analysis_type == "🔍 Búsqueda Específica":
-        st.subheader("Búsqueda Específica en la Base de Datos")
-        
-        # Opciones de búsqueda
-        search_type = st.selectbox(
-            "¿Qué quieres buscar?",
-            [
-                "Buscar por Autor",
-                "Buscar por Institución", 
-                "Buscar por Palabra Clave",
-                "Buscar por Título"
-            ]
-        )
-        
-        search_term = st.text_input("Introduce el término de búsqueda:")
-        
-        if search_term:
-            if search_type == "Buscar por Autor":
-                # Buscar papers que contengan el autor
-                mask = df_filtered['autores_normalizados'].str.contains(search_term, case=False, na=False)
-                resultados = df_filtered[mask]
-                
-            elif search_type == "Buscar por Institución":
-                mask = df_filtered['afiliaciones_normalizadas'].str.contains(search_term, case=False, na=False)
-                resultados = df_filtered[mask]
-                
-            elif search_type == "Buscar por Palabra Clave":
-                mask = df_filtered['palabras_clave'].str.contains(search_term, case=False, na=False)
-                resultados = df_filtered[mask]
-                
-            elif search_type == "Buscar por Título":
-                mask = df_filtered['titulo'].str.contains(search_term, case=False, na=False)
-                resultados = df_filtered[mask]
-            
-            if len(resultados) > 0:
-                st.success(f"Se encontraron {len(resultados)} resultados para '{search_term}'")
-                
-                # Mostrar resultados
-                for i, (_, row) in enumerate(resultados.iterrows(), 1):
-                    with st.expander(f"Resultado {i}: {row['titulo'][:80]}..."):
-                        st.write(f"**Título:** {row['titulo']}")
-                        st.write(f"**Autores:** {row['autores_normalizados']}")
-                        st.write(f"**Instituciones:** {row['afiliaciones_normalizadas']}")
-                        st.write(f"**Temática:** {row['tematica']}")
-                        if row['palabras_clave']:
-                            st.write(f"**Palabras Clave:** {row['palabras_clave']}")
-            else:
-                st.warning(f"No se encontraron resultados para '{search_term}'")

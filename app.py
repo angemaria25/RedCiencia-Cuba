@@ -18,6 +18,11 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.manifold import TSNE
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -1221,7 +1226,49 @@ def analyze_institution_thematic_patterns(df_filtered, G_inst_tema, metrics_inst
                 st.metric("📚 Temáticas", inst_info['Num_Tematicas'])
             
             
-            
+def create_centrality_plot_bipartita(metrics, centrality_type, top_n, G, tipo_nodo):
+    """Crea gráfico de centralidad filtrado por tipo de nodo (autor, temática, institución)"""
+    centrality_map = {
+        'Grado': 'degree_centrality',
+        'Intermediación': 'betweenness_centrality',
+        'Cercanía': 'closeness_centrality',
+        'Autovector': 'eigenvector_centrality'
+    }
+
+    metric_key = centrality_map.get(centrality_type)
+    if not metric_key or metric_key not in metrics:
+        st.warning("Métrica no disponible para esta red.")
+        return
+
+    centrality_data = metrics[metric_key]
+
+    # Filtrar nodos por tipo
+    nodos_filtrados = [n for n, d in G.nodes(data=True) if d.get('type') == tipo_nodo]
+    data_filtrada = {k: v for k, v in centrality_data.items() if k in nodos_filtrados}
+
+    if not data_filtrada:
+        st.info("No hay datos de centralidad para este tipo de nodo.")
+        return
+
+    top_data = sorted(data_filtrada.items(), key=lambda x: x[1], reverse=True)[:top_n]
+
+    fig = go.Figure(go.Bar(
+        x=[item[1] for item in top_data],
+        y=[item[0] for item in top_data],
+        orientation='h',
+        marker_color='orange'
+    ))
+
+    fig.update_layout(
+        title=f"Top {top_n} - Centralidad de {centrality_type} ({tipo_nodo})",
+        xaxis_title="Valor de Centralidad",
+        yaxis_title="Nodo",
+        height=400 + top_n * 15,
+        showlegend=False
+    )
+
+    st.plotly_chart(fig, use_container_width=True)
+
             
 
 ##INTERFAZ PRINCIPAL
@@ -1434,7 +1481,10 @@ with tabs[3]:
                         key='top_n_tema'
                     )
                 
-                create_single_centrality_plot(metrics_tema, centrality_type, top_n)
+                #create_single_centrality_plot(metrics_tema, centrality_type, top_n)
+                tipo_nodo = st.selectbox("Tipo de nodo:", ['autor', 'tematica'], key='tipo_nodo_autor_tem')
+                create_centrality_plot_bipartita(metrics_tema, centrality_type, top_n, G_tematica, tipo_nodo)
+
             
             # Análisis específico de patrones temáticos
             analyze_thematic_patterns(df_filtered, G_tematica, metrics_tema)
@@ -1513,7 +1563,10 @@ with tabs[4]:
                         key='top_n_inst_tema'
                     )
 
-                create_single_centrality_plot(metrics_inst_tema, centrality_type, top_n)
+                #create_single_centrality_plot(metrics_inst_tema, centrality_type, top_n)
+                tipo_nodo = st.selectbox("Tipo de nodo:", ['institucion', 'tematica'], key='tipo_nodo_inst_tem')  
+                create_centrality_plot_bipartita(metrics_inst_tema, centrality_type, top_n, G_inst_tema, tipo_nodo)
+
             
             # Análisis específico de especialización institucional
             analyze_institution_thematic_patterns(df_filtered, G_inst_tema, metrics_inst_tema)

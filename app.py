@@ -544,112 +544,205 @@ def create_single_centrality_plot(metrics, centrality_type, top_n):
 
 def analyze_author_collaboration_patterns(df_filtered, G_coautor, metrics_coautor):
     """Análisis específico de patrones de colaboración entre autores"""
-    # Crear análisis de autores más colaborativos
-    autor_stats = {}
+    # 1. Primero mapeamos autor -> instituciones y contamos frecuencias
+    autor_instituciones = defaultdict(list)  # Para guardar todas las instituciones por aparición
+    autor_instituciones_freq = defaultdict(lambda: defaultdict(int))  # Para contar frecuencias
+    
+    # 2. Mapeamos parejas de autores y cuántas veces han colaborado
+    colaboraciones_counts = defaultdict(int)
+    
+    # Preprocesar palabras clave para el autor
+    autor_palabras_clave = defaultdict(list)
+    
     for _, row in df_filtered.iterrows():
         autores = row['autores_list']
+        instituciones = row['afiliaciones_list']
+        palabras_clave = row['palabras_clave_list']
+        
+        # Mapear instituciones de cada autor (contando frecuencias)
+        for autor in autores:
+            autor_palabras_clave[autor].extend(palabras_clave)
+            for institucion in instituciones:
+                if institucion.strip():  # Solo si no está vacía
+                    autor_instituciones[autor].append(institucion)
+                    autor_instituciones_freq[autor][institucion] += 1
+        
+        # Contar colaboraciones entre autores
         if len(autores) > 1:  # Solo papers colaborativos
-            for autor in autores:
-                if autor not in autor_stats:
-                    autor_stats[autor] = {
-                        'colaboraciones': 0,
-                        'coautores_unicos': set(),
-                        'tematicas': set(),
-                        'palabras_clave': [],
-                        'instituciones': set()
-                    }
-                
-                autor_stats[autor]['colaboraciones'] += 1
-                autor_stats[autor]['coautores_unicos'].update([a for a in autores if a != autor])
-                autor_stats[autor]['tematicas'].add(row['tematica'])
-                autor_stats[autor]['palabras_clave'].extend(row['palabras_clave_list'])
-                autor_stats[autor]['instituciones'].update(row['afiliaciones_list'])
+            for i in range(len(autores)):
+                for j in range(i+1, len(autores)):
+                    par = tuple(sorted([autores[i], autores[j]]))
+                    colaboraciones_counts[par] += 1
     
-    if autor_stats:
-        # Convertir a DataFrame para análisis
-        autor_df = []
-        for autor, stats in autor_stats.items():
+    # 3. Determinar institución principal para cada autor (la más frecuente)
+    autor_institucion_principal = {}
+    for autor, frecuencias in autor_instituciones_freq.items():
+        if frecuencias:
+            autor_institucion_principal[autor] = max(frecuencias.items(), key=lambda x: x[1])[0]
+        else:
+            autor_institucion_principal[autor] = "Desconocida"
+    
+    # 4. Analizamos cada autor
+    autor_stats = {}
+    for autor in autor_instituciones:
+        # Inicializar stats para este autor
+        autor_stats[autor] = {
+            'colaboraciones_totales': 0,
+            'coautores_unicos': set(),
+            'coautores_detalle': defaultdict(int),  # {coautor: veces que colaboraron}
+            'instituciones_todas': set(autor_instituciones[autor]),  # Todas las instituciones únicas
+            'institucion_principal': autor_institucion_principal[autor],  # Institución más frecuente
+            'instituciones_coautores': set(),
+            'palabras_clave': autor_palabras_clave[autor]
+        }
+    
+    # 5. Llenamos la información de colaboraciones
+    for (autor1, autor2), count in colaboraciones_counts.items():
+        # Para autor1
+        autor_stats[autor1]['colaboraciones_totales'] += count
+        autor_stats[autor1]['coautores_unicos'].add(autor2)
+        autor_stats[autor1]['coautores_detalle'][autor2] += count
+        autor_stats[autor1]['instituciones_coautores'].add(autor_institucion_principal.get(autor2, "Desconocida"))
+        
+        # Para autor2 (si son diferentes)
+        autor_stats[autor2]['colaboraciones_totales'] += count
+        autor_stats[autor2]['coautores_unicos'].add(autor1)
+        autor_stats[autor2]['coautores_detalle'][autor1] += count
+        autor_stats[autor2]['instituciones_coautores'].add(autor_institucion_principal.get(autor1, "Desconocida"))
+    
+    # 6. Convertimos a DataFrame para análisis
+    autor_df = []
+    for autor, stats in autor_stats.items():
+        if stats['colaboraciones_totales'] > 0:  # Solo autores con colaboraciones
+            # Encontrar el colaborador principal
+            if stats['coautores_detalle']:
+                colaborador_principal, veces = max(stats['coautores_detalle'].items(), key=lambda x: x[1])
+                institucion_colab_principal = autor_institucion_principal.get(colaborador_principal, "Desconocida")
+            else:
+                colaborador_principal, veces, institucion_colab_principal = "", 0, ""
+            
             autor_df.append({
                 'Autor': autor,
-                'Colaboraciones': stats['colaboraciones'],
+                'Colaboraciones_Totales': stats['colaboraciones_totales'],
                 'Coautores_Unicos': len(stats['coautores_unicos']),
-                'Diversidad_Tematica': len(stats['tematicas']),
-                'Diversidad_Institucional': len([inst for inst in stats['instituciones'] if inst]),
+                'Colaborador_Principal': colaborador_principal,
+                'Veces_Colaborador_Principal': veces,
+                'Institucion_Principal': stats['institucion_principal'],
+                'Instituciones_Todas': ', '.join(stats['instituciones_todas']),
+                'Instituciones_Coautores': len(stats['instituciones_coautores']),
+                'Lista_Instituciones_Coautores': list(stats['instituciones_coautores']),
                 'Palabras_Clave': stats['palabras_clave'],
-                'Tematicas': list(stats['tematicas'])
+                'Institucion_Colab_Principal': institucion_colab_principal
             })
-        
-        if autor_df:  # Verificar que hay datos
-            autor_df = pd.DataFrame(autor_df)
-            autor_df = autor_df.sort_values('Colaboraciones', ascending=False)
-            
-        else:
-            st.warning("No hay suficientes datos de colaboración para realizar el análisis.")
-            return
-        
-        top_colaborativos = autor_df.head(10)
-        
-        fig = px.bar(
-            top_colaborativos,
-            x='Colaboraciones',
-            y='Autor',
-            orientation='h',
-            title="Autores con mayor cantidad de Colaboraciones"
-        )
-        fig.update_layout(height=400)
-        st.plotly_chart(fig, use_container_width=True)
     
-        # Análisis detallado de autor seleccionado
-        st.subheader("Resumen de Autor")
-        autor_seleccionado = st.selectbox(
-            "Selecciona un autor:",
-            [''] + list(autor_df['Autor'].values),
-            key='autor_colab_analysis'
+    if not autor_df:
+        st.warning("No hay datos de colaboración para mostrar.")
+        return
+    
+    autor_df = pd.DataFrame(autor_df).sort_values('Colaboraciones_Totales', ascending=False)
+    
+    # 7. Mostrar gráfico de autores más colaborativos (con institución principal)
+    st.subheader("Autores con más colaboraciones")
+    fig = px.bar(
+        autor_df.head(10),
+        x='Colaboraciones_Totales',
+        y='Autor',
+        hover_data=['Institucion_Principal'],
+        orientation='h',
+        title="Top 10 autores por número de colaboraciones",
+        labels={'Institucion_Principal': 'Institución principal'}
+    )
+    st.plotly_chart(fig, use_container_width=True)
+    
+    # 8. Análisis detallado de autor seleccionado
+    st.subheader("Detalle de colaboraciones por autor")
+    autor_seleccionado = st.selectbox(
+        "Selecciona un autor para ver detalles:",
+        [''] + list(autor_df['Autor'].unique()),
+        key='autor_detalle'
+    )
+    
+    if autor_seleccionado:
+        info_autor = autor_df[autor_df['Autor'] == autor_seleccionado].iloc[0]
+        stats_autor = autor_stats[autor_seleccionado]
+        
+        # Métricas clave - Ahora con institución principal
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.metric("📊 Colaboraciones totales", info_autor['Colaboraciones_Totales'])
+        with col2:
+            st.metric("👥 Cantidad de colaboradores", info_autor['Coautores_Unicos'])
+        with col3:
+            st.metric("🏛 Institución principal", info_autor['Institucion_Principal'])
+        with col4:
+            st.metric("🤝 Colaborador más frecuente", 
+                     f"{info_autor['Colaborador_Principal']} ({info_autor['Veces_Colaborador_Principal']} veces)")
+        
+        # Mostrar todas las instituciones donde ha aparecido el autor
+        st.write("**Todas las instituciones asociadas al autor:**")
+        st.info(info_autor['Instituciones_Todas'])
+        
+        # Mostrar institución del colaborador principal
+        if info_autor['Colaborador_Principal']:
+            st.write(f"**Institución del colaborador principal ({info_autor['Colaborador_Principal']}):**")
+            st.info(info_autor['Institucion_Colab_Principal'])
+        
+        # Tabla de colaboradores ordenada por frecuencia
+        st.write("**Lista de colaboradores y frecuencia:**")
+        colaboradores_ordenados = sorted(
+            stats_autor['coautores_detalle'].items(),
+            key=lambda x: x[1],
+            reverse=True
         )
         
-        if autor_seleccionado:
-            autor_info = autor_df[autor_df['Autor'] == autor_seleccionado].iloc[0]
-            
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("🤝 Colaboraciones", autor_info['Colaboraciones'])
-            with col2:
-                st.metric("📚 Temáticas", autor_info['Diversidad_Tematica'])
-            with col3:
-                st.metric("🏛️ Instituciones", autor_info['Diversidad_Institucional'])
-            
-            # Nube de palabras de especialización
-            if autor_info['Palabras_Clave']:
-                st.subheader(f"☁️ Campo de investigación de {autor_seleccionado}")
-                
-                palabra_freq = Counter(autor_info['Palabras_Clave'])
-                if len(palabra_freq) > 0:
-                    try:
-                        wordcloud = WordCloud(
-                            width=800, 
-                            height=300, 
-                            background_color='white',
-                            max_words=30,
-                            colormap='viridis'
-                        ).generate_from_frequencies(palabra_freq)
-                        
-                        fig, ax = plt.subplots(figsize=(10, 4))
-                        ax.imshow(wordcloud, interpolation='bilinear')
-                        ax.axis('off')
-                        st.pyplot(fig)
-                        plt.close()
-                    except:
-                        st.write("**Principales áreas de especialización:**")
-                        for palabra, freq in palabra_freq.most_common(15):
-                            st.write(f"• {palabra} ({freq} veces)")
-            
-            # Temáticas del autor
-            col1, col2 = st.columns(2)
-            with col1:
-                st.write("**Temáticas de Investigación:**")
-                for tema in autor_info['Tematicas']:
-                    st.write(f"• {tema}")
-
+        # Crear DataFrame para mostrar
+        cols_df = pd.DataFrame(colaboradores_ordenados, columns=['Coautor', 'Veces que colaboró'])
+        cols_df['Institución'] = cols_df['Coautor'].apply(
+            lambda x: autor_institucion_principal.get(x, "Desconocida"))
+        
+        st.dataframe(
+            cols_df,
+            column_config={
+                "Coautor": "Nombre del coautor",
+                "Veces que colaboró": "Número de colaboraciones",
+                "Institución": "Institución principal"
+            },
+            hide_index=True,
+            use_container_width=True
+        )
+        
+        # Mostrar instituciones de coautores
+        st.write("**Instituciones de los colaboradores:**")
+        st.info(', '.join(info_autor['Lista_Instituciones_Coautores'][:20]))
+        if len(info_autor['Lista_Instituciones_Coautores']) > 20:
+            st.write(f"... y {len(info_autor['Lista_Instituciones_Coautores']) - 20} más")
+        
+        # Nube de palabras del campo de estudio del autor
+        st.subheader("☁️ Nube de palabras - Campo de estudio")
+        if info_autor['Palabras_Clave']:
+            palabra_freq = Counter(info_autor['Palabras_Clave'])
+            if len(palabra_freq) > 0:
+                try:
+                    wordcloud = WordCloud(
+                        width=800, 
+                        height=400, 
+                        background_color='white',
+                        max_words=50,
+                        colormap='viridis'
+                    ).generate_from_frequencies(palabra_freq)
+                    
+                    fig, ax = plt.subplots(figsize=(12, 6))
+                    ax.imshow(wordcloud, interpolation='bilinear')
+                    ax.axis('off')
+                    st.pyplot(fig)
+                    plt.close()
+                except Exception as e:
+                    st.error(f"Error generando nube de palabras: {e}")
+                    st.write("**Palabras clave más frecuentes:**")
+                    for palabra, freq in palabra_freq.most_common(20):
+                        st.write(f"• {palabra} ({freq} veces)")
+        else:
+            st.warning("No hay palabras clave disponibles para este autor.")
 def analyze_institutional_collaboration(df_filtered, G_institucional, metrics_inst):
     """Análisis específico de colaboración institucional"""
     

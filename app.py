@@ -39,7 +39,7 @@ st.title("RedCiencia Cuba")
 def load_and_analyze_data():
     """Carga y analiza los datos de papers cubanos"""
     try:
-        df = pd.read_csv('data_final_normalizado.csv')
+        df = pd.read_csv('./data/data_final_normalizado.csv')
         
         # Limpieza y preprocesamiento
         df['autores_normalizados'] = df['autores_normalizados'].fillna('').astype(str)

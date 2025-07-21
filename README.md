@@ -1,4 +1,4 @@
-# Sistema de Análisis de Redes Científicas 🔬
+# 🔬 Sistema de Análisis de Redes Científicas 
 
 Un sistema completo para el análisis y visualización de redes de colaboración científica desarrollado con Streamlit y NetworkX.
 
@@ -35,14 +35,6 @@ streamlit run interfaz.py
 ```bash
 pip install streamlit networkx pandas matplotlib wordcloud plotly
 ```
-
-## 🔧 Configuración
-
-Las configuraciones del sistema se encuentran en `config/settings.py` donde puedes modificar:
-- Colores de visualización
-- Rutas de archivos
-- Parámetros de análisis
-- Configuraciones de la interfaz
 
 ## 📈 Tipos de Análisis Disponibles
 

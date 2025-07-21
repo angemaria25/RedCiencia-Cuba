@@ -1,0 +1,1 @@
+# Funcionalidades principales del sistema
